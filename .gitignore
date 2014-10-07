@@ -1,0 +1,8 @@
+.idea/*
+examples/rules.yaml
+node_modules/*
+rules.json
+model.java
+npm-debug.log
+*.js
+*.js.map

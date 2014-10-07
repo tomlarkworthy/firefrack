@@ -1,4 +1,3 @@
-virtualbrainfuck
-================
+# Virtual Brainfuck
 
-Brainfuck interpreter running on Firebase
+Secure, Turing-complete computation inside a Firebase
