@@ -1,109 +1,15 @@
-predicates:            #reusable boolean functions
+functions:            #reusable boolean functions
   - isLoggedIn():      auth.username !== null
 
 schema:
   definitions:
-
-    data:
-      #prefix starts with # to avoid empty string in databuffer
-      #suffix ends with #
-      #each number is 3 characters, counting as 100 as 0, so we can encode >256
-      #and ensuring the numbers always have three digits
-      #the index points to a data location currently uncoded from a string
+    mem:
       type: object
-
-      #note we allow the vlaue to change on + or -, but this opens the input and output to modification too, so not secure
-      constraint:
-        (
-          (
-            next.prefix == prev.prefix &&
-            next.suffix == prev.suffix &&
-            (
-              root[prev.parent().program][prev.parent().pc + ''] == '+' ||
-              root[prev.parent().program][prev.parent().pc + ''] == '-' ||
-              root[prev.parent().program][prev.parent().pc + ''] == ','
-            )
-          ) || (
-            next.prefix + next.value + next.suffix == prev.prefix + prev.value + prev.suffix
-          )
-        ) && next.prefix.val().length == next.index * 3 + 1
-
       properties:
-        prefix:
-          type: string
-          constraint: next.val().beginsWith('#')
-        suffix:
-          type: string
-          constraint: next.val().endsWith('#')
-        index:
-          type: number
-        value:
-          type: number
-
-      required: [prefix, suffix, value]
-      additionalProperties: false
-
-    input:
-      #prefix starts with # to avoid empty string in databuffer
-      #suffix ends with #
-      #each number is 3 characters, counting as 100 as 0, so we can encode >256
-      #and ensuring the numbers always have three digits
-      #the index points to a data location currently uncoded from a string
-      type: object
-
-      constraint:
-        next.prefix + next.value + next.suffix == prev.prefix + prev.value + prev.suffix
-        && next.prefix.val().length == next.index * 3 + 1
-
-      properties:
-        prefix:
-          type: string
-          constraint: next.val().beginsWith('#')
-        suffix:
-          type: string
-          constraint: next.val().endsWith('#')
-        index:
-          type: number
-        value:
-          type: number
-
-      required: [prefix, suffix, value]
-      additionalProperties: false
-
-    output:
-      #prefix starts with # to avoid empty string in databuffer
-      #suffix ends with #
-      #each number is 3 characters, counting as 100 as 0, so we can encode >256
-      #and ensuring the numbers always have three digits
-      #the index points to a data location currently uncoded from a string
-      type: object
-
-      constraint:
-        (
-          (
-            next.prefix + next.value + next.suffix == prev.prefix + prev.parent().data.value + prev.suffix &&
-            (
-              root[prev.parent().program][prev.parent().pc + ''] == '.'
-            )
-          ) || (
-            next.prefix + next.value + next.suffix == prev.prefix + prev.value + prev.suffix
-          )
-        ) && next.prefix.val().length == next.index * 3 + 1
-
-      properties:
-        prefix:
-          type: string
-          constraint: next.val().beginsWith('#')
-        suffix:
-          type: string
-          constraint: next.val().endsWith('#')
-        index:
-          type: number
-        value:
-          type: number
-
-      required: [prefix, suffix, value]
-      additionalProperties: false
+        last_access: {type: number}
+      ~$cell:
+        type: number
+        constraint: next.parent()['last_access'] + '' == $cell
 
     program:
       type: object
@@ -113,65 +19,65 @@ schema:
     machine:
       type: object
       properties:
-        program: {type: string}
-        data:    {$ref: "#/definitions/data"}
-        input:   {$ref: "#/definitions/input"}
-        output:  {$ref: "#/definitions/output"}
+        program_loc: {type: string}
+        data:    {$ref: "#/definitions/mem"}
+        input:   {$ref: "#/definitions/mem"}
+        output:  {$ref: "#/definitions/mem"}
         pc:      {type: number}
 
       constraint:
         (
-          root[prev.program][prev.pc + ''] == '>' &&
+          root[prev.program_loc][prev.pc + ''] == '>' &&
           next.pc == prev.pc + 1 &&
           next.data.index == prev.data.index + 1
         ) ||
         (
-          root[prev.program][prev.pc + ''] == '<' &&
+          root[prev.program_loc][prev.pc + ''] == '<' &&
           next.pc == prev.pc + 1 &&
           next.data.index == prev.data.index - 1
         ) ||
         (
-          root[prev.program][prev.pc + ''] == '+' &&
+          root[prev.program_loc][prev.pc + ''] == '+' &&
           next.pc == prev.pc + 1 &&
           next.data.value == prev.data.value + 1
         ) ||
         (
-          root[prev.program][prev.pc + ''] == '-' &&
+          root[prev.program_loc][prev.pc + ''] == '-' &&
           next.pc == prev.pc + 1 &&
           next.data.value == prev.data.value - 1
         )||
         (
-          root[prev.program][prev.pc + ''] == ',' &&
+          root[prev.program_loc][prev.pc + ''] == ',' &&
           next.pc == prev.pc + 1 &&
           next.data.value == prev.input.value &&
           next.input.index== prev.input.index + 1
         )||
         (
-          root[prev.program][prev.pc + ''] == '.' &&
+          root[prev.program_loc][prev.pc + ''] == '.' &&
           next.pc == prev.pc + 1 &&
           next.output.index== prev.output.index + 1
         )||
         (
-          root[prev.program][prev.pc + ''].isNumber() &&
-          root[prev.program][prev.pc + ''] > 0 &&
+          root[prev.program_loc][prev.pc + ''].isNumber() &&
+          root[prev.program_loc][prev.pc + ''] > 0 &&
           next.data.value == 100 &&
-          next.pc == root[prev.program][prev.pc + '']
+          next.pc == root[prev.program_loc][prev.pc + '']
         )||
         (
-          root[prev.program][prev.pc + ''].isNumber() &&
-          root[prev.program][prev.pc + ''] > 0 &&
+          root[prev.program_loc][prev.pc + ''].isNumber() &&
+          root[prev.program_loc][prev.pc + ''] > 0 &&
           next.data.value != 100 &&
           next.pc == prev.pc + 1
         )||
         (
-          root[prev.program][prev.pc + ''].isNumber() &&
-          root[prev.program][prev.pc + ''] < 0 &&
+          root[prev.program_loc][prev.pc + ''].isNumber() &&
+          root[prev.program_loc][prev.pc + ''] < 0 &&
           next.data.value != 100 &&
-          next.pc == -root[prev.program][prev.pc + '']
+          next.pc == -root[prev.program_loc][prev.pc + '']
         )||
         (
-          root[prev.program][prev.pc + ''].isNumber() &&
-          root[prev.program][prev.pc + ''] < 0 &&
+          root[prev.program_loc][prev.pc + ''].isNumber() &&
+          root[prev.program_loc][prev.pc + ''] < 0 &&
           next.data.value == 100 &&
           next.pc == prev.pc + 1
         )
@@ -184,13 +90,13 @@ schema:
     program: {$ref: "#/definitions/program"}
     machine: {$ref: "#/definitions/machine"}
 
-    test_buffer: {$ref: "#/definitions/input"}
+    test_mem: {$ref: "#/definitions/mem"}
 
 
 
 
 
 access:
-  - location: /*
+  - location: /
     write:    true
     read:     true

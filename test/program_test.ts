@@ -12,6 +12,19 @@ export function testSetup(test:nodeunit.Test):void{
     ], test.done.bind(null));
 }
 
+export function testMem(test:nodeunit.Test):void{
+    async.series([
+        test_utils.assert_admin_can_write.bind(null, "/test_mem", {}, test),
+
+        test_utils.assert_can_write.bind(null, "tom", "/test_mem/last_access", 1, test), //todo this is a hole, last_access should not be changable without updating memory contents
+
+        test_utils.assert_can_write.bind(null, "tom", "/test_mem", {"1": 5, "last_access":1}, test),
+
+        test_utils.assert_cant_write.bind(null, "tom", "/test_mem", {"1": 5, "last_access":2}, test), //last_access must be updated
+
+    ], test.done.bind(null));
+}
+/*
 export function testBuffer(test:nodeunit.Test):void{
     async.series([
         test_utils.assert_admin_can_write.bind(null, "/test_buffer", {
@@ -49,8 +62,9 @@ export function testBuffer(test:nodeunit.Test):void{
             index: 0//wrong index
         }, test)
     ], test.done.bind(null));
-}
+}*/
 
+/*
 export function testShifts(test:nodeunit.Test):void{
 
     var code:string[] = bf2firebase.convert("><", true);
@@ -313,3 +327,4 @@ export function testHelloWorld(test:nodeunit.Test):void{
 
     ], test.done.bind(null));
 }
+*/
