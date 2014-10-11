@@ -6,10 +6,17 @@ schema:
     mem:
       type: object
       properties:
-        last_access: {type: number}
+        index: {type: number}
       ~$cell:
         type: number
-        constraint: next.parent()['last_access'] + '' == $cell
+        constraint: next == prev || (next.parent().index == prev.parent().index && next.parent().index + '' == $cell)
+
+    out:
+      type: object
+      properties:
+        index: {type: number}
+      ~$cell:
+        type: number
 
     program:
       type: object
@@ -22,7 +29,7 @@ schema:
         program_loc: {type: string}
         data:    {$ref: "#/definitions/mem"}
         input:   {$ref: "#/definitions/mem"}
-        output:  {$ref: "#/definitions/mem"}
+        output:  {$ref: "#/definitions/out"}
         pc:      {type: number}
 
       constraint:
@@ -39,46 +46,47 @@ schema:
         (
           root[prev.program_loc][prev.pc + ''] == '+' &&
           next.pc == prev.pc + 1 &&
-          next.data.value == prev.data.value + 1
+          next.data[next.data.index + ''] == prev.data[next.data.index + ''] + 1
         ) ||
         (
           root[prev.program_loc][prev.pc + ''] == '-' &&
           next.pc == prev.pc + 1 &&
-          next.data.value == prev.data.value - 1
+          next.data[next.data.index + ''] == prev.data[next.data.index + ''] - 1
         )||
         (
           root[prev.program_loc][prev.pc + ''] == ',' &&
           next.pc == prev.pc + 1 &&
-          next.data.value == prev.input.value &&
-          next.input.index== prev.input.index + 1
+          next.data[next.data.index + ''] == prev.input[prev.input.index + ''] &&
+          next.input.index == prev.input.index + 1
         )||
         (
           root[prev.program_loc][prev.pc + ''] == '.' &&
           next.pc == prev.pc + 1 &&
-          next.output.index== prev.output.index + 1
+          next.output[prev.output.index + ''] == prev.data[prev.data.index + ''] &&
+          next.output.index == prev.output.index + 1
         )||
         (
           root[prev.program_loc][prev.pc + ''].isNumber() &&
           root[prev.program_loc][prev.pc + ''] > 0 &&
-          next.data.value == 100 &&
+          next.data[next.data.index + ''] == 0 &&
           next.pc == root[prev.program_loc][prev.pc + '']
         )||
         (
           root[prev.program_loc][prev.pc + ''].isNumber() &&
           root[prev.program_loc][prev.pc + ''] > 0 &&
-          next.data.value != 100 &&
+          next.data[next.data.index + ''] != 0 &&
           next.pc == prev.pc + 1
         )||
         (
           root[prev.program_loc][prev.pc + ''].isNumber() &&
           root[prev.program_loc][prev.pc + ''] < 0 &&
-          next.data.value != 100 &&
+          next.data[next.data.index + ''] != 0 &&
           next.pc == -root[prev.program_loc][prev.pc + '']
         )||
         (
           root[prev.program_loc][prev.pc + ''].isNumber() &&
           root[prev.program_loc][prev.pc + ''] < 0 &&
-          next.data.value == 100 &&
+          next.data[next.data.index + ''] == 0 &&
           next.pc == prev.pc + 1
         )
 
