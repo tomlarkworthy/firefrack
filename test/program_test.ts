@@ -5,6 +5,7 @@ import async = require('async');
 import fs = require('fs');
 
 import bf2firebase = require('../src/bf2firebase');
+import machine = require('../src/machine');
 
 export function testSetup(test:nodeunit.Test):void{
     async.series([
@@ -16,116 +17,104 @@ export function testMem(test:nodeunit.Test):void{
     async.series([
         test_utils.assert_admin_can_write.bind(null, "/test_mem", {}, test),
 
-        test_utils.assert_can_write.bind(null, "tom", "/test_mem/last_access", 1, test), //todo this is a hole, last_access should not be changable without updating memory contents
+        test_utils.assert_can_write.bind(null, "tom", "/test_mem/index", 1, test), //todo this is a hole, last_access should not be changable without updating memory contents
 
-        test_utils.assert_can_write.bind(null, "tom", "/test_mem", {"1": 5, "last_access":1}, test),
+        test_utils.assert_can_write.bind(null, "tom", "/test_mem", {"1": 5, "index":1}, test),
 
-        test_utils.assert_cant_write.bind(null, "tom", "/test_mem", {"1": 5, "last_access":2}, test), //last_access must be updated
+        test_utils.assert_can_write.bind(null, "tom", "/test_mem", {"1": 5, "index":2}, test), //cursor can be updated
+
+        test_utils.assert_cant_write.bind(null, "tom", "/test_mem", {"1": 4, "index":2}, test), //values can;t be updated off cursor
 
     ], test.done.bind(null));
 }
-/*
-export function testBuffer(test:nodeunit.Test):void{
-    async.series([
-        test_utils.assert_admin_can_write.bind(null, "/test_buffer", {
-            prefix: "#123",
-            suffix: "789#",
-            value: 456,
-            index: 1
-        }, test),
 
-        test_utils.assert_can_write.bind(null, "tom", "/test_buffer", {
-            prefix: "#",
-            suffix: "456789#",
-            value: 123,
-            index: 0
-        }, test),
-
-        test_utils.assert_can_write.bind(null, "tom", "/test_buffer", {
-            prefix: "#123456",
-            suffix: "#",
-            value: 789,
-            index: 2
-        }, test),
-
-        test_utils.assert_cant_write.bind(null, "tom", "/test_buffer", {
-            prefix: "#123",
-            suffix: "789#",
-            value: 444, //wrong number
-            index: 1
-        }, test),
-
-        test_utils.assert_cant_write.bind(null, "tom", "/test_buffer", {
-            prefix: "#123",
-            suffix: "789#",
-            value: 456,
-            index: 0//wrong index
-        }, test)
-    ], test.done.bind(null));
-}*/
-
-/*
 export function testShifts(test:nodeunit.Test):void{
 
-    var code:string[] = bf2firebase.convert("><", true);
+    var code: string[] = bf2firebase.convert("><", true);
 
     console.log(code);
     async.series([
         test_utils.assert_admin_can_write.bind(null, "/program", code, test),
         test_utils.assert_admin_can_write.bind(null, "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"101#", index:0, value:100},
-            input: {prefix:"#", suffix:"#", index:0, value:0},
-            output: {prefix:"#", suffix:"#", index:0, value:0},
+            program_loc: "program",
+            mem:  {index:0, "0":0},
+            input: {},
+            output: {},
             pc:      0
-        }, test),
-
-        //check data must be shifted correctly
-        test_utils.assert_cant_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#100", suffix:"#", index:1, value:100},
-            input: {prefix:"#", suffix:"#", index:0, value:0},
-            output: {prefix:"#", suffix:"#", index:0, value:0},
-            pc:      1
         }, test),
 
         //check program counter must be shifted correctly
         test_utils.assert_cant_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#100", suffix:"#", index:1, value:101},
-            input: {prefix:"#", suffix:"#", index:0, value:0},
-            output: {prefix:"#", suffix:"#", index:0, value:0},
-            pc:      0
+            program_loc:"program",
+            mem:    {index:1, "0":0},
+            input:  {},
+            output: {},
+            pc:     0
         }, test),
 
         //check data index must be shifted correctly
         test_utils.assert_cant_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#100", suffix:"#", index:0, value:101},
-            input: {prefix:"#", suffix:"#", index:0, value:0},
-            output: {prefix:"#", suffix:"#", index:0, value:0},
-            pc:      1
+            program_loc:"program",
+            mem:    {index:0, "0":0},
+            input:  {},
+            output: {},
+            pc:     1
         }, test),
 
         //check a correct instruction executes correctly
         test_utils.assert_can_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#100", suffix:"#", index:1, value:101},
-            input: {prefix:"#", suffix:"#", index:0, value:0},
-            output: {prefix:"#", suffix:"#", index:0, value:0},
-            pc:      1
+            program_loc:"program",
+            mem:    {index:1, "0":0},
+            input:  {},
+            output: {},
+            pc:     1
         }, test),
 
         //now check we can shift back with the second operand
         test_utils.assert_can_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"101#", index:0, value:100},
-            input: {prefix:"#", suffix:"#", index:0, value:0},
-            output: {prefix:"#", suffix:"#", index:0, value:0},
-            pc:      2
+            program_loc:"program",
+            mem:    {index:0, "0":0},
+            input:  {},
+            output: {},
+            pc:     2
         }, test)
 
     ], test.done.bind(null));
+}
+
+
+export function testShifts2(test: nodeunit.Test) {
+    var code: string[] = bf2firebase.convert("><", true);
+
+    var state0: machine.MachineState = new machine.MachineState(
+        code,
+        0,
+        {index:0, "0":0},
+        {},
+        {}
+    );
+
+    var state1: machine.MachineState = new machine.MachineState(
+        code,
+        1,
+        {index:1, "0":0},
+        {},
+        {}
+    );
+
+    var state2: machine.MachineState = new machine.MachineState(
+        code,
+        2,
+        {index:0, "0":0},
+        {},
+        {}
+    );
+
+
+    test.deepEqual(machine.step(state0), state1);
+    test.deepEqual(machine.step(state1), state2);
+
+    test.done();
 }
 
 export function testIncDec(test:nodeunit.Test):void{
@@ -135,33 +124,66 @@ export function testIncDec(test:nodeunit.Test):void{
     async.series([
         test_utils.assert_admin_can_write.bind(null, "/program", code, test),
         test_utils.assert_admin_can_write.bind(null, "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:100},
-            input: {prefix:"#", suffix:"#", index:0, value:0},
-            output: {prefix:"#", suffix:"#", index:0, value:0},
-            pc:      0
+            program_loc:"program",
+            mem:    {index:0, "0":0},
+            input:  {},
+            output: {},
+            pc:     0
         }, test),
 
         //check a correct instruction executes correctly
         test_utils.assert_can_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:101},
-            input: {prefix:"#", suffix:"#", index:0, value:0},
-            output: {prefix:"#", suffix:"#", index:0, value:0},
-            pc:      1
+            program_loc:"program",
+            mem:    {index:0, "0":1},
+            input:  {},
+            output: {},
+            pc:     1
         }, test),
 
         //now check we can shift back with the second operand
         test_utils.assert_can_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:100},
-            input: {prefix:"#", suffix:"#", index:0, value:0},
-            output: {prefix:"#", suffix:"#", index:0, value:0},
-            pc:      2
+            program_loc:"program",
+            mem:    {index:0, "0":0},
+            input:  {},
+            output: {},
+            pc:     2
         }, test)
 
     ], test.done.bind(null));
 }
+
+export function testIncDec2(test:nodeunit.Test):void{
+    var code:string[] = bf2firebase.convert("+-", true);
+
+    var state0: machine.MachineState = new machine.MachineState(
+        code,
+        0,
+        {index:0, "0":0},
+        {},
+        {}
+    );
+
+    var state1: machine.MachineState = new machine.MachineState(
+        code,
+        1,
+        {index:0, "0":1},
+        {},
+        {}
+    );
+
+    var state2: machine.MachineState = new machine.MachineState(
+        code,
+        2,
+        {index:0, "0":0},
+        {},
+        {}
+    );
+    test.deepEqual(machine.step(state0), state1);
+    test.deepEqual(machine.step(state1), state2);
+
+    test.done();
+}
+
 
 export function testInput(test:nodeunit.Test):void{
     var code:string[] = bf2firebase.convert(",", true);
@@ -170,24 +192,47 @@ export function testInput(test:nodeunit.Test):void{
     async.series([
         test_utils.assert_admin_can_write.bind(null, "/program", code, test),
         test_utils.assert_admin_can_write.bind(null, "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:100},
-            input: {prefix:"#", suffix:"100#", index:0, value:101},
-            output: {prefix:"#", suffix:"#", index:0, value:0},
-            pc:      0
+            program_loc:"program",
+            mem:    {index:0, "0":0}, //todo try and make mem lazily
+            input:  {index:0, "0":5},
+            output: {},
+            pc:     0
         }, test),
 
         //check a correct instruction executes correctly
         test_utils.assert_can_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:101},
-            input: {prefix:"#101", suffix:"#", index:1, value:100},
-            output: {prefix:"#", suffix:"#", index:0, value:0},
-            pc:      1
+            program_loc:"program",
+            mem:    {index:0, "0":5},
+            input:  {index:1, "0":5},
+            output: {},
+            pc:     1
         }, test)
 
     ], test.done.bind(null));
 }
+
+export function testInput2(test:nodeunit.Test):void{
+    var code:string[] = bf2firebase.convert(",", true);
+
+    var state0: machine.MachineState = new machine.MachineState(
+        code,
+        0,
+        {index:0, "0":0},
+        {index:0, "0":5},
+        {}
+    );
+
+    var state1: machine.MachineState = new machine.MachineState(
+        code,
+        1,
+        {index:0, "0":5},
+        {index:1, "0":5},
+        {}
+    );
+    test.deepEqual(machine.step(state0), state1);
+    test.done();
+}
+
 export function testOutput(test:nodeunit.Test):void{
     var code:string[] = bf2firebase.convert("+.", true);
 
@@ -196,33 +241,63 @@ export function testOutput(test:nodeunit.Test):void{
         test_utils.assert_admin_can_write.bind(null, "/program", code, test),
 
         test_utils.assert_admin_can_write.bind(null, "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:100},
-            input: {prefix:"#", suffix:"#", index:0, value:100},
-            output: {prefix:"#", suffix:"100#", index:0, value:100},
-            pc:      0
+            program_loc:"program",
+            mem:    {index:0, "0":0},
+            input:  {index:0, "0":0},
+            output: {index:0, "0":0},
+            pc:     0
         }, test),
 
         test_utils.assert_admin_can_write.bind(null, "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:101},
-            input: {prefix:"#", suffix:"#", index:0, value:100},
-            output: {prefix:"#", suffix:"100#", index:0, value:100},
-            pc:      1
+            program_loc:"program",
+            mem:    {index:0, "0":1},
+            input:  {index:0, "0":0},
+            output: {index:0, "0":0},
+            pc:     1
         }, test),
 
         //check a correct instruction executes correctly
         test_utils.assert_can_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:101},
-            input: {prefix:"#", suffix:"#", index:0, value:100},
-            output: {prefix:"#101", suffix:"#", index:1, value:100},
-            pc:      2
+            program_loc:"program",
+            mem:    {index:0, "0":1},
+            input:  {index:0, "0":0},
+            output: {index:1, "0":1}, //todo we dangerously loosened security on the output in order to move index and modify in one operation
+            pc:     2
         }, test)
 
     ], test.done.bind(null));
 }
 
+export function testOutput2(test:nodeunit.Test):void{
+    var code:string[] = bf2firebase.convert("+.", true);
+
+    var state0: machine.MachineState = new machine.MachineState(
+        code,
+        0,
+        {index:0, "0":0},
+        {index:0, "0":0},
+        {index:0, "0":0}
+    );
+
+    var state1: machine.MachineState = new machine.MachineState(
+        code,
+        1,
+        {index:0, "0":1},
+        {index:0, "0":0},
+        {index:0, "0":0}
+    );
+
+    var state2: machine.MachineState = new machine.MachineState(
+        code,
+        2,
+        {index:0, "0":1},
+        {index:0, "0":0},
+        {index:1, "0":1}
+    );
+    test.deepEqual(machine.step(state0), state1);
+    test.deepEqual(machine.step(state1), state2);
+    test.done();
+}
 
 export function testJmp(test:nodeunit.Test):void{
     var code:string[] = bf2firebase.convert("++[-][---]", true);
@@ -232,87 +307,172 @@ export function testJmp(test:nodeunit.Test):void{
         test_utils.assert_admin_can_write.bind(null, "/program", code, test),
 
         test_utils.assert_admin_can_write.bind(null, "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:100},
-            input: {prefix:"#", suffix:"#", index:0, value:100},
-            output: {prefix:"#", suffix:"#", index:0, value:100},
-            pc:      0
+            program_loc:"program",
+            mem:    {index:0, "0":0},
+            input:  {index:0, "0":0},
+            output: {index:0, "0":0},
+            pc:     0
         }, test),
 
         test_utils.assert_admin_can_write.bind(null, "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:101},
-            input: {prefix:"#", suffix:"#", index:0, value:100},
-            output: {prefix:"#", suffix:"#", index:0, value:100},
-            pc:      1
+            program_loc: "program",
+            mem:    {index:0, "0":1},
+            input:  {index:0, "0":0},
+            output: {index:0, "0":0},
+            pc:     1
         }, test),
 
         test_utils.assert_admin_can_write.bind(null, "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:102},
-            input: {prefix:"#", suffix:"#", index:0, value:100},
-            output: {prefix:"#", suffix:"#", index:0, value:100},
-            pc:      2
+            program_loc: "program",
+            mem:    {index:0, "0":2},
+            input:  {index:0, "0":0},
+            output: {index:0, "0":0},
+            pc:     2
         }, test),
 
         test_utils.assert_can_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:102},
-            input: {prefix:"#", suffix:"#", index:0, value:100},
-            output: {prefix:"#", suffix:"#", index:0, value:100},
-            pc:      3
+            program_loc: "program",
+            mem:    {index:0, "0":2},
+            input:  {index:0, "0":0},
+            output: {index:0, "0":0},
+            pc:     3
         }, test),
 
         test_utils.assert_can_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:101},
-            input: {prefix:"#", suffix:"#", index:0, value:100},
-            output: {prefix:"#", suffix:"#", index:0, value:100},
-            pc:      4
+            program_loc: "program",
+            mem:    {index:0, "0":1},
+            input:  {index:0, "0":0},
+            output: {index:0, "0":0},
+            pc:     4
         }, test),
 
         test_utils.assert_can_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:101},
-            input: {prefix:"#", suffix:"#", index:0, value:100},
-            output: {prefix:"#", suffix:"#", index:0, value:100},
-            pc:      3
+            program_loc: "program",
+            mem:    {index:0, "0":1},
+            input:  {index:0, "0":0},
+            output: {index:0, "0":0},
+            pc:     3
         }, test),
 
         test_utils.assert_can_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:100},
-            input: {prefix:"#", suffix:"#", index:0, value:100},
-            output: {prefix:"#", suffix:"#", index:0, value:100},
-            pc:      4
+            program_loc: "program",
+            mem:    {index:0, "0":0},
+            input:  {index:0, "0":0},
+            output: {index:0, "0":0},
+            pc:     4
         }, test),
 
         test_utils.assert_can_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:100},
-            input: {prefix:"#", suffix:"#", index:0, value:100},
-            output: {prefix:"#", suffix:"#", index:0, value:100},
-            pc:      5
+            program_loc: "program",
+            mem:    {index:0, "0":0},
+            input:  {index:0, "0":0},
+            output: {index:0, "0":0},
+            pc:     5
         }, test),
 
         test_utils.assert_can_write.bind(null,  "tom", "/machine", {
-            program: "program",
-            data: {prefix:"#", suffix:"#", index:0, value:100},
-            input: {prefix:"#", suffix:"#", index:0, value:100},
-            output: {prefix:"#", suffix:"#", index:0, value:100},
-            pc:      10
+            program_loc: "program",
+            mem:    {index:0, "0":0},
+            input:  {index:0, "0":0},
+            output: {index:0, "0":0},
+            pc:     10
         }, test)
 
     ], test.done.bind(null));
 }
 
+export function testJmp2(test:nodeunit.Test):void{
+    var code:string[] = bf2firebase.convert("++[-][---]", true);
 
+    var state0: machine.MachineState = new machine.MachineState(
+        code,
+        0,
+        {index:0, "0":0},
+        {index:0, "0":0},
+        {index:0, "0":0}
+    );
+
+    var state1: machine.MachineState = new machine.MachineState(
+        code,
+        1,
+        {index:0, "0":1},
+        {index:0, "0":0},
+        {index:0, "0":0}
+    );
+
+    var state2: machine.MachineState = new machine.MachineState(
+        code,
+        2,
+        {index:0, "0":2},
+        {index:0, "0":0},
+        {index:0, "0":0}
+    );
+    var state3: machine.MachineState = new machine.MachineState(
+        code,
+        3,
+        {index:0, "0":2},
+        {index:0, "0":0},
+        {index:0, "0":0}
+    );
+
+    var state4: machine.MachineState = new machine.MachineState(
+        code,
+        4,
+        {index:0, "0":1},
+        {index:0, "0":0},
+        {index:0, "0":0}
+    );
+
+    var state5: machine.MachineState = new machine.MachineState(
+        code,
+        3,
+        {index:0, "0":1},
+        {index:0, "0":0},
+        {index:0, "0":0}
+    );
+
+    var state6: machine.MachineState = new machine.MachineState(
+        code,
+        4,
+        {index:0, "0":0},
+        {index:0, "0":0},
+        {index:0, "0":0}
+    );
+
+    var state7: machine.MachineState = new machine.MachineState(
+        code,
+        5,
+        {index:0, "0":0},
+        {index:0, "0":0},
+        {index:0, "0":0}
+    );
+
+    var state8: machine.MachineState = new machine.MachineState(
+        code,
+        10,
+        {index:0, "0":0},
+        {index:0, "0":0},
+        {index:0, "0":0}
+    );
+    test.deepEqual(machine.step(state0), state1);
+    test.deepEqual(machine.step(state1), state2);
+    test.deepEqual(machine.step(state2), state3);
+    test.deepEqual(machine.step(state3), state4);
+    test.deepEqual(machine.step(state4), state5);
+    test.deepEqual(machine.step(state5), state6);
+    test.deepEqual(machine.step(state6), state7);
+    test.deepEqual(machine.step(state7), state8);
+    test.done();
+}
+
+/*
 export function testHelloWorld(test:nodeunit.Test):void{
 
     var code:string[] = bf2firebase.convert(fs.readFileSync("programs/hello.bf").toString(), true);
 
     console.log(code);
     async.series([
+        WRONG LOCATIONS
         test_utils.assert_admin_can_write.bind(null, "/program", code, test),
         test_utils.assert_admin_can_write.bind(null, "/memory", {}, test),
         test_utils.assert_admin_can_write.bind(null, "/pc",     0, test),
@@ -321,10 +481,9 @@ export function testHelloWorld(test:nodeunit.Test):void{
 
         //check from field must be correct
         test_utils.assert_cant_write.bind(null,  "tom", "/", {
-            program: []
+            program_loc: []
         }, test)
 
 
     ], test.done.bind(null));
-}
-*/
+}*/

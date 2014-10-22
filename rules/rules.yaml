@@ -27,66 +27,75 @@ schema:
       type: object
       properties:
         program_loc: {type: string}
-        data:    {$ref: "#/definitions/mem"}
+        mem:     {$ref: "#/definitions/mem"}
         input:   {$ref: "#/definitions/mem"}
         output:  {$ref: "#/definitions/out"}
         pc:      {type: number}
 
       constraint:
         (
+          next.pc == 0 &&
+          next.mem.index == 0 &&
+          next.mem['0'] == 0 &&
+          next.input.index == 0 &&
+          next.input['0'] == 0 &&
+          next.output.index == 0 &&
+          next.output['0'] == 0
+        ) ||
+        (
           root[prev.program_loc][prev.pc + ''] == '>' &&
           next.pc == prev.pc + 1 &&
-          next.data.index == prev.data.index + 1
+          next.mem.index == prev.mem.index + 1
         ) ||
         (
           root[prev.program_loc][prev.pc + ''] == '<' &&
           next.pc == prev.pc + 1 &&
-          next.data.index == prev.data.index - 1
+          next.mem.index == prev.mem.index - 1
         ) ||
         (
           root[prev.program_loc][prev.pc + ''] == '+' &&
           next.pc == prev.pc + 1 &&
-          next.data[next.data.index + ''] == prev.data[next.data.index + ''] + 1
+          next.mem[next.mem.index + ''] == prev.mem[next.mem.index + ''] + 1
         ) ||
         (
           root[prev.program_loc][prev.pc + ''] == '-' &&
           next.pc == prev.pc + 1 &&
-          next.data[next.data.index + ''] == prev.data[next.data.index + ''] - 1
+          next.mem[next.mem.index + ''] == prev.mem[next.mem.index + ''] - 1
         )||
         (
           root[prev.program_loc][prev.pc + ''] == ',' &&
           next.pc == prev.pc + 1 &&
-          next.data[next.data.index + ''] == prev.input[prev.input.index + ''] &&
+          next.mem[next.mem.index + ''] == prev.input[prev.input.index + ''] &&
           next.input.index == prev.input.index + 1
         )||
         (
           root[prev.program_loc][prev.pc + ''] == '.' &&
           next.pc == prev.pc + 1 &&
-          next.output[prev.output.index + ''] == prev.data[prev.data.index + ''] &&
+          next.output[prev.output.index + ''] == prev.mem[prev.mem.index + ''] &&
           next.output.index == prev.output.index + 1
         )||
         (
           root[prev.program_loc][prev.pc + ''].isNumber() &&
           root[prev.program_loc][prev.pc + ''] > 0 &&
-          next.data[next.data.index + ''] == 0 &&
+          next.mem[next.mem.index + ''] == 0 &&
           next.pc == root[prev.program_loc][prev.pc + '']
         )||
         (
           root[prev.program_loc][prev.pc + ''].isNumber() &&
           root[prev.program_loc][prev.pc + ''] > 0 &&
-          next.data[next.data.index + ''] != 0 &&
+          next.mem[next.mem.index + ''] != 0 &&
           next.pc == prev.pc + 1
         )||
         (
           root[prev.program_loc][prev.pc + ''].isNumber() &&
           root[prev.program_loc][prev.pc + ''] < 0 &&
-          next.data[next.data.index + ''] != 0 &&
+          next.mem[next.mem.index + ''] != 0 &&
           next.pc == -root[prev.program_loc][prev.pc + '']
         )||
         (
           root[prev.program_loc][prev.pc + ''].isNumber() &&
           root[prev.program_loc][prev.pc + ''] < 0 &&
-          next.data[next.data.index + ''] == 0 &&
+          next.mem[next.mem.index + ''] == 0 &&
           next.pc == prev.pc + 1
         )
 

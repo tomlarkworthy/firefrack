@@ -1,0 +1,32 @@
+<head>
+  <!-- React JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.11.1/JSXTransformer.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.11.1/react.js"></script>
+
+  <!-- Firebase JS -->
+  <script src="https://cdn.firebase.com/js/client/1.0.17/firebase.js"></script>
+
+  <!-- ReactFire -->
+  <script src="https://cdn.firebase.com/libs/reactfire/0.1.6/reactfire.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <h1>Firefrack</h1>
+    <p>Brainf_ck interpreter firebase with enforced with security rules.</p>
+    <p>A proof-of-concept that demonstrates you don't need server side code to perform secure Turing computation</p>
+    <p>Due to Firebase's optimistic writes, for small programs the client side computation is faster than the network latency! There are real engineering advantages over server side computation</p>
+
+    <span id="machine"></span>
+    <div>
+        <span id="mem"></span>
+        <span id="input"></span>
+        <span id="output"></span>
+    </div>
+    <p>Program:-</p>
+	<div id="program"></div>
+	<!--app-->
+  	<script src="src/machine.js"></script>
+  	<script src="src/firefrack.js" type="text/jsx"></script>
+
+</body>

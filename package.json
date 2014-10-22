@@ -1,5 +1,5 @@
 {
-  "name": "virtualbrainfuck",
+  "name": "firefrack",
   "version": "0.0.1",
   "description": "Intepreter for brainfuck programs in Firebase",
   "author": "Tom Larkworthy",

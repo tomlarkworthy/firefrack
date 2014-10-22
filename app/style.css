@@ -1,0 +1,17 @@
+p {
+    font-family: "Courier New", Courier, monospace
+}
+
+.value {
+	text-align: center;
+    color: red;
+}
+
+.highlight {
+	font-weight: bold;
+}
+
+.address {
+	text-align: center;
+    color: blue;
+}
