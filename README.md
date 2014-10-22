@@ -1,3 +1,3 @@
-# Virtual Brainfuck
+# Firefrack
 
 Secure, Turing-complete computation inside a Firebase
